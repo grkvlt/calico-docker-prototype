@@ -5,27 +5,24 @@ CID=$1
 IPADDR=$2
 GROUP=$3
 
-if [ "x$CID" = "x" ]
-then 
+if [ -z "$CID" ]; then
     echo "No CID"
     exit
 fi
 
-if [ "x$IPADDR" = "x" ]
-then 
+if [ -z "$IPADDR" ]; then
     echo "No IP addr"
     exit
 fi
 
-if [ "x$GROUP" = "x" ]
-then 
+if [ -z "$GROUP" ]; then
     echo "No group"
     exit
 fi
 
 set -e
 
-NAME=`echo $IPADDR | sed 's/\./_/g'`
+NAME=`echo $IPADDR | tr '.' '_'`
 
 CPID=`docker inspect -f '{{.State.Pid}}' $CID`
 
@@ -53,13 +50,15 @@ ip netns exec $CPID ip route add default dev eth0
 # Get the MAC address.
 MAC=`ip netns exec $CPID ip link show eth0 | grep ether | awk '{print $2}'`
 
-FILE=/opt/plugin/data/$NAME.txt
-echo "[endpoint $NAME]" > $FILE
-echo "id=$CID"         >> $FILE
-echo "ip=$IPADDR"      >> $FILE
-echo "mac=$MAC"        >> $FILE
-echo "host=$HOSTNAME"  >> $FILE
-echo "group=$GROUP"    >> $FILE
-echo                   >> $FILE
+FILE=/opt/plugin/data/${NAME}.txt
+cat <<EOF > $FILE
+[endpoint $NAME]
+id=$CID
+ip=$IPADDR
+mac=$MAC
+host=$HOSTNAME
+group=$GROUP
+
+EOF
 
 cat /opt/plugin/data/* > /opt/plugin/data.txt
